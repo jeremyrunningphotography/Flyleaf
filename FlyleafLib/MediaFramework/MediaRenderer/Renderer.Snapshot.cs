@@ -46,11 +46,24 @@ public unsafe partial class Renderer
 
                 if (VideoProcessor == VideoProcessors.D3D11)
                 {
+                    vc.VideoProcessorGetStreamSourceRect(vp, 0, out var sourceEnabled, out var sourceOld);
                     vc.VideoProcessorGetStreamDestRect  (vp, 0, out _, out var d3destOld);
                     vc.VideoProcessorGetOutputTargetRect(vp,    out _, out var d3outOld);
-                    D3RenderPostProcessed(rFrame.VPIV, snapshot);
-                    vc.VideoProcessorSetStreamDestRect  (vp, 0, true, d3destOld);
-                    vc.VideoProcessorSetOutputTargetRect(vp,    true, d3outOld);
+                    try
+                    {
+                        // The live viewport clips the source when zoomed/panned. Snapshots
+                        // retain the complete visible source, independent of that viewport.
+                        vc.VideoProcessorSetStreamSourceRect(vp, 0, true,
+                            new((int)crop.Left, (int)crop.Top,
+                                (int)(d3txtDesc.Width - crop.Right), (int)(d3txtDesc.Height - crop.Bottom)));
+                        D3RenderPostProcessed(rFrame.VPIV, snapshot);
+                    }
+                    finally
+                    {
+                        vc.VideoProcessorSetStreamSourceRect(vp, 0, sourceEnabled, sourceOld);
+                        vc.VideoProcessorSetStreamDestRect  (vp, 0, true, d3destOld);
+                        vc.VideoProcessorSetOutputTargetRect(vp,    true, d3outOld);
+                    }
                 }
                 else
                 {
