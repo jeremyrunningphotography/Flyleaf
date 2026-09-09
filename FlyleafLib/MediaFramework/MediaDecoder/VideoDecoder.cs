@@ -1,4 +1,4 @@
-﻿using SharpGen.Runtime;
+using SharpGen.Runtime;
 
 using FlyleafLib.MediaFramework.MediaDemuxer;
 using FlyleafLib.MediaFramework.MediaFrame;
@@ -666,6 +666,13 @@ public unsafe class VideoDecoder : DecoderBase
             ret = FillFromCodec(frame);
             if (ret == -1234)
                 return -1234;
+        }
+
+        if (Config.Video.FrameSelection is { } selectFrame &&
+            !selectFrame((long)(frame->pts * VideoStream.Timebase) - demuxer.StartTime))
+        {
+            av_frame_unref(frame);
+            return RecvAVFrame();
         }
 
         if (skipSpeedFrames > 1)
