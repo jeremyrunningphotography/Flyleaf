@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows.Data;
 
@@ -633,15 +633,15 @@ public class Config : NotifyPropertyChanged
         /// </summary>
         public bool             ClearScreen                 { get; set; } = true;
 
-        /// <summary>
-        /// Used to limit the number of frames rendered, particularly at increased speed
-        /// </summary>
         /// <summary>Optional synchronous decoded-frame selector. Receives normalized source PTS in .NET ticks.
         /// Return false to discard before renderer preparation. Caller must not block or mutate the decoder.
         /// Absent by default; the owning playback consumer resets its selector on seek/source transitions.</summary>
         [JsonIgnore]
         public Func<long, bool> FrameSelection { get; set; }
 
+        /// <summary>
+        /// Used to limit the number of frames rendered, particularly at increased speed
+        /// </summary>
         public double           MaxOutputFps                { get; set; } = 60;
 
         /// <summary>

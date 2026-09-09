@@ -1,4 +1,4 @@
-using SharpGen.Runtime;
+﻿using SharpGen.Runtime;
 
 using FlyleafLib.MediaFramework.MediaDemuxer;
 using FlyleafLib.MediaFramework.MediaFrame;
