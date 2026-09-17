@@ -1,5 +1,6 @@
-﻿using Vortice.Direct3D11;
+using Vortice.Direct3D11;
 using Vortice.DXGI;
+using Vortice.Mathematics;
 
 using ID3D11Texture2D   = Vortice.Direct3D11.ID3D11Texture2D;
 using MapFlags          = Vortice.Direct3D11.MapFlags;
@@ -72,29 +73,40 @@ public unsafe partial class Renderer
         }
     }
 
-    void FLHDRDetect()
+    void FLHDRDetect(ID3D11RenderTargetView target, Viewport viewport)
     {
         if (!isHdr || psHdr == null)
             return;
 
-        FLHDRSetup();
-
-        if (hdrSyncNext)
+        try
         {
-            FLHDRSync();
-            return;
+            FLHDRSetup();
+
+            if (hdrSyncNext)
+            {
+                FLHDRSync();
+                return;
+            }
+
+            FLHDRRead();
+
+            if (hdrPending[hdrWriteIndex])
+                return;
+
+            int index = hdrWriteIndex;
+
+            FLHDRSubmit(index);
+            hdrWriteIndex = (hdrWriteIndex + 1) % hdrBuffers;
         }
-
-        FLHDRRead();
-
-        if (hdrPending[hdrWriteIndex])
-            return;
-
-        int index = hdrWriteIndex;
-
-        FLHDRSubmit(index);
-        hdrWriteIndex = (hdrWriteIndex + 1) % hdrBuffers;
-        FLHDRRestore();
+        finally
+        {
+            // Analysis borrows pipeline state; live and snapshot callers may target an
+            // intermediate rather than the swap chain. Restore even on synchronous reset.
+            context.OMSetRenderTargets(target);
+            context.RSSetViewport(viewport);
+            context.VSSetShader(vsMain);
+            context.PSSetShader(psShader[psIdPrev]);
+        }
     }
 
     void FLHDRSubmit(int index)
@@ -110,14 +122,6 @@ public unsafe partial class Renderer
 
         hdrPending[index]   = true;
         hdrPendingGen[index]= hdrGeneration;
-    }
-
-    void FLHDRRestore()
-    {
-        context.OMSetRenderTargets(SwapChain.BackBufferRtv);
-        context.RSSetViewport(Viewport);
-        context.VSSetShader(vsMain);
-        context.PSSetShader(psShader[psIdPrev]);
     }
 
     void FLHDRSync()
@@ -141,7 +145,6 @@ public unsafe partial class Renderer
         hdrReadIndex      = 0;
         hdrSyncNext       = false;
 
-        FLHDRRestore();
     }
 
     void FLHDRDiscardPending()

@@ -662,6 +662,13 @@ public unsafe class VideoDecoder : DecoderBase
                 return -1234;
         }
 
+        if (Config.Video.FrameSelection is { } selectFrame &&
+            !selectFrame((long)(frame->pts * VideoStream.Timebase) - demuxer.StartTime))
+        {
+            av_frame_unref(frame);
+            return RecvAVFrame();
+        }
+
         if (skipSpeedFrames > 1)
         {
             curSpeedFrame++;

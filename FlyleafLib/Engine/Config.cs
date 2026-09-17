@@ -580,6 +580,13 @@ public class Config : NotifyPropertyChanged
     }
     public class VideoConfig : VPConfig
     {
+        /// <summary>
+        /// Optional factory for a device-scoped renderer post-processor. The factory and its
+        /// processor are runtime-only and are not serialized with the video configuration.
+        /// </summary>
+        [JsonIgnore]
+        public IVideoPostProcessorFactory PostProcessorFactory { get; set; }
+
         public VideoConfig()
         {
             UIInvokeIfRequired(() =>
@@ -625,6 +632,12 @@ public class Config : NotifyPropertyChanged
         /// Clears the screen on stop/close/open
         /// </summary>
         public bool             ClearScreen                 { get; set; } = true;
+
+        /// <summary>Optional synchronous decoded-frame selector. Receives normalized source PTS in .NET ticks.
+        /// Return false to discard before renderer preparation. Caller must not block or mutate the decoder.
+        /// Absent by default; the owning playback consumer resets its selector on seek/source transitions.</summary>
+        [JsonIgnore]
+        public Func<long, bool> FrameSelection { get; set; }
 
         /// <summary>
         /// Used to limit the number of frames rendered, particularly at increased speed
