@@ -580,6 +580,13 @@ public class Config : NotifyPropertyChanged
     }
     public class VideoConfig : VPConfig
     {
+        /// <summary>
+        /// Optional factory for a device-scoped renderer post-processor. The factory and its
+        /// processor are runtime-only and are not serialized with the video configuration.
+        /// </summary>
+        [JsonIgnore]
+        public IVideoPostProcessorFactory PostProcessorFactory { get; set; }
+
         public VideoConfig()
         {
             UIInvokeIfRequired(() =>
@@ -626,6 +633,12 @@ public class Config : NotifyPropertyChanged
         /// </summary>
         public bool             ClearScreen                 { get; set; } = true;
 
+        /// <summary>Optional synchronous decoded-frame selector. Receives normalized source PTS in .NET ticks.
+        /// Return false to discard before renderer preparation. Caller must not block or mutate the decoder.
+        /// Absent by default; the owning playback consumer resets its selector on seek/source transitions.</summary>
+        [JsonIgnore]
+        public Func<long, bool> FrameSelection { get; set; }
+
         /// <summary>
         /// Used to limit the number of frames rendered, particularly at increased speed
         /// </summary>
@@ -648,6 +661,18 @@ public class Config : NotifyPropertyChanged
         /// </summary>
         [JsonIgnore]
         public int              MaxVerticalResolution       => MaxVerticalResolutionCustom == 0 ? (MaxVerticalResolutionAuto != 0 ? MaxVerticalResolutionAuto : 1080) : MaxVerticalResolutionCustom;
+
+        /// <summary>
+        /// Monitor's Minimum Nits (for HDRtoSDR)
+        /// </summary>
+        public float            TargetMinNits               { get => _targetMinNits;    set {  if (Set(ref _targetMinNits, value)) player?.Renderer?.FLUpdateTargetNits(); } }
+        float _targetMinNits;
+
+        /// <summary>
+        /// Monitor's Maximum Nits (for HDRtoSDR)
+        /// </summary>
+        public float            TargetMaxNits               { get => _targetMaxNits;    set {  if (Set(ref _targetMaxNits, value)) player?.Renderer?.FLUpdateTargetNits(); } }
+        float _targetMaxNits;
 
         /// <summary>
         /// Sets Super Resolution (Nvidia / Intel - D3D11VP only)
@@ -685,37 +710,6 @@ public class Config : NotifyPropertyChanged
         /// </summary>
         public bool             DoubleRate                  { get => _DoubleRate;       set => Set(ref _DoubleRate, value); }
         bool _DoubleRate = true;
-
-        /// <summary>
-        /// The HDR to SDR method that will be used by the pixel shader
-        /// </summary>
-        public HDRtoSDRMethod   HDRtoSDRMethod              { get => _HDRtoSDRMethod;   set { if (Set(ref _HDRtoSDRMethod, value))  player?.Renderer?.VPRequest(VPRequestType.HDRtoSDR); } }
-        HDRtoSDRMethod _HDRtoSDRMethod = HDRtoSDRMethod.Hable;
-
-       /// <summary>
-        /// SDR Display Peak Luminance - tonemap for HDR to SDR (based on Auto/Custom)
-        /// </summary>
-        [JsonIgnore]
-        public float SDRDisplayNits
-        {
-            get => SDRDisplayNitsCustom == 0 ? (SDRDisplayNitsAuto != 0 ? SDRDisplayNitsAuto : 200) : SDRDisplayNitsCustom;
-            set => SDRDisplayNitsCustom = value;
-        }
-
-        /// <summary>
-        /// SDR Display Peak Luminance - tonemap for HDR to SDR (Recommended)
-        /// </summary>
-        [JsonIgnore]
-        public float            SDRDisplayNitsAuto          { get => _SDRDisplayNitsAuto;   set { if (Set(ref _SDRDisplayNitsAuto, value) && _SDRDisplayNitsCustom == 0) { player?.Renderer?.VPRequest(VPRequestType.HDRtoSDR); RaiseUI(nameof(SDRDisplayNits)); } } }
-        float _SDRDisplayNitsAuto;
-
-        /// <summary>
-        /// SDR Display Peak Luminance - tonemap for HDR to SDR (Custom)
-        /// </summary>
-        public float            SDRDisplayNitsCustom        { get => _SDRDisplayNitsCustom; set { if (Set(ref _SDRDisplayNitsCustom, value)) { player?.Renderer?.VPRequest(VPRequestType.HDRtoSDR); } } }
-        float _SDRDisplayNitsCustom;
-
-        //public SwapChainFormat  SwapChainFormat             { get; set; } = SwapChainFormat.BGRA;
 
         /// <summary>
         /// Enables custom Direct2D drawing over playback frames

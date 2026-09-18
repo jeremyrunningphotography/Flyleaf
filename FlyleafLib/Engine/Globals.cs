@@ -40,9 +40,9 @@ public enum InputType
 public enum HDRtoSDRMethod // Must match pixel shader
 {
     None,
-    Aces,
-    Hable,
-    Reinhard
+    HLG,
+    PQ,
+    PQSpline
 }
 
 public enum DeInterlace // Must match with VideoFrameFormat
@@ -97,9 +97,7 @@ public enum ColorType
 public enum HDRFormat
 {
     None,
-    DolbyVision,
-    HDR,
-    HDRPlus,
+    HDR10,
     HLG
 }
 public enum UIRefreshType
@@ -138,6 +136,7 @@ public class GPUOutput
     public bool             IsAttached      { get; internal set; }
     public ModeRotation     Rotation        { get; internal set; }
     public float            MaxLuminance    { get; internal set; }
+    public float            MinLuminance    { get; internal set; }
     //public int              RefreshRate     { get; internal set; } // Currently not used
 
     public override string ToString()
